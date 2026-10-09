@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>From Phishing to Data Leak: Securing University Online Registration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=Instrument+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #10143A;
+      --ground: #0E1466;
+      --card: #10143A;
+      --paper: #ffffff;
+      --mint: #8FE3C0;
+      --primary: #FF7A1A;
+      --band-a: #FFE08A;
+      --band-b: #D8CCFF;
+      --muted: #DDE1FF;
+      --line: #546080;
+      --row: #172044;
+      --row-alt: #1D294D;
+      --heading-font: "Bricolage Grotesque", sans-serif;
+      --body-font: "Instrument Sans", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-snap-type: y mandatory; }
+
+    body {
+      margin: 0;
+      background: var(--ground);
+      color: var(--paper);
+      font-family: var(--body-font);
+      font-weight: 400;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    .card {
+      min-height: 100vh;
+      scroll-snap-align: start;
+      background: var(--card);
+      padding: 40pt 48pt;
+      display: flex;
+      flex-direction: column;
+      border-bottom: 12px solid var(--ground);
+    }
+
+    h1, h2, h3 {
+      font-family: var(--heading-font);
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 0.95;
+      margin: 0 0 0.45em;
+      hyphens: none;
+    }
+
+    h1 { font-size: clamp(2rem, 4vw, 44pt); }
+    h3 { font-size: 23pt; line-height: 1.05; }
+
+    p { margin: 0; }
+
+    .mint {
+      background: var(--mint);
+      color: var(--ink);
+    }
+
+    .row { background: var(--row); }
+    .row-alt { background: var(--row-alt); }
+
+    /* ---------- Title ---------- */
+    .title {
+      height: 100vh;
+      min-height: 100vh;
+      max-height: 100vh;
+      padding: 0;
+      border: 0;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 58fr 42fr;
+    }
+
+    .title-copy {
+      padding: 7vh 6.5% 7vh 7.5%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      min-width: 0;
+    }
+
+    .title-stack { width: min(100%, 44rem); }
+
+    .title h1 {
+      max-width: none;
+      margin: 0 0 0.7em;
+      font-size: clamp(2.35rem, 4.35vw, 3.85rem);
+      font-weight: 800;
+      line-height: 0.98;
+      letter-spacing: -0.03em;
+    }
+
+    .title .course {
+      margin: 0;
+      padding: 1.2rem 1.5rem;
+      background: var(--mint);
+      color: var(--ink);
+      font-size: clamp(1.02rem, 1.5vw, 1.28rem);
+      font-weight: 400;
+      line-height: 1.4;
+    }
+
+    .title .members {
+      margin: 1.65rem 0 0;
+      padding: 0 0.15rem;
+      color: var(--paper);
+      background: transparent;
+      font-size: clamp(1rem, 1.3vw, 1.2rem);
+      font-weight: 400;
+    }
+
+    .title-media {
+      position: relative;
+      min-width: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .title-media img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center center;
+    }
+
+    .bleed {
+      min-height: 100%;
+      width: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* ---------- Five incidents ---------- */
+    #slide-2 {
+      height: 100vh;
+      min-height: 100vh;
+      max-height: 100vh;
+      overflow: hidden;
+      padding: 8.5vh 5vw 7vh;
+      border: 0;
+    }
+
+    #slide-2 h1 {
+      margin: 0 0 7vh;
+      font-size: clamp(2.2rem, 4.5vw, 4rem);
+      line-height: 0.95;
+      letter-spacing: -0.025em;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      margin: 0;
+    }
+
+    .step {
+      position: relative;
+      padding: 0 1.05rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      transition: transform 0.25s ease;
+    }
+
+    .step:hover { transform: scale(1.12); z-index: 5; }
+    .step:first-child:hover { transform-origin: left center; }
+    .step:last-child:hover { transform-origin: right center; }
+
+    .chev {
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      height: clamp(4rem, 7.2vw, 6rem);
+      margin: 0 -1.05rem 0.15rem;
+      background: #FFE08A;
+      color: var(--ink);
+      font-family: var(--body-font);
+      font-weight: 600;
+      font-size: clamp(1.45rem, 2.5vw, 2.25rem);
+      line-height: 1;
+      clip-path: polygon(0 0, calc(100% - 1.35rem) 0, 100% 50%, calc(100% - 1.35rem) 100%, 0 100%, 1.35rem 50%);
+    }
+
+    .step img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      display: block;
+      flex: none;
+    }
+
+    .step p {
+      margin: 0;
+      font-size: clamp(0.92rem, 1.45vw, 1.33rem);
+      font-weight: 400;
+      line-height: 1.35;
+      color: #fff;
+    }
+
+    .note {
+      margin-top: 18pt;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    #slide-2 .note {
+      margin-top: auto;
+      color: #fff;
+      font-size: clamp(0.95rem, 1.35vw, 1.25rem);
+      font-weight: 400;
+    }
+
+    #slide-refs {
+      min-height: 100vh;
+      height: auto;
+      max-height: none;
+      overflow: visible;
+      padding: 5vh 5vw 6vh;
+      border: 0;
+    }
+
+    #slide-refs h1 {
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      margin-bottom: 0.45em;
+    }
+
+    .refs {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .refs li {
+      font-size: clamp(0.84rem, 1.15vw, 1.02rem);
+      line-height: 1.4;
+      padding-left: 1.5rem;
+      text-indent: -1.5rem;
+    }
+
+    .refs em { font-style: italic; }
+
+    .refs a { color: var(--mint); }
+
+    /* ---------- Architecture ---------- */
+    #slide-6 {
+      height: 100vh;
+      overflow: hidden;
+      padding: 28pt 32pt 18pt;
+    }
+
+    #slide-6 h1 { margin-bottom: 0.28em; }
+
+    .diagram-frame {
+      flex: 1;
+      min-height: 0;
+      margin: 0 0 8pt;
+      position: relative;
+      display: flex;
+    }
+
+    .diagram-slot {
+      flex: 1;
+      min-height: 0;
+      border: 2.5px solid var(--mint);
+      background: #fff;
+      overflow: auto;
+      overscroll-behavior: contain;
+      cursor: grab;
+    }
+
+    .diagram-slot img {
+      display: block;
+      width: 4600px;
+      max-width: none;
+      height: auto;
+    }
+
+    .zoom-bar {
+      position: absolute;
+      right: 14px;
+      bottom: 14px;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .zoom-bar button,
+    .zoom-bar output {
+      border: 2px solid var(--mint);
+      border-radius: 2em;
+      font: inherit;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .zoom-bar button {
+      background: var(--card);
+      color: #fff;
+      min-width: 2.5em;
+      padding: 0.4em 0.75em;
+      cursor: pointer;
+    }
+
+    .zoom-bar button:hover,
+    .zoom-bar button:focus-visible {
+      background: var(--mint);
+      color: var(--ink);
+    }
+
+    .zoom-bar output {
+      min-width: 4.2em;
+      padding: 0.4em 0.55em;
+      text-align: center;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    /* ---------- Action plan ---------- */
+    .bands-3, .bands-stack {
+      display: grid;
+      gap: 10pt;
+      flex: 1;
+    }
+
+    .bands-3 { grid-template-columns: repeat(3, 1fr); }
+
+    .band {
+      padding: 20pt;
+    }
+
+    .band ul { margin: 0.4em 0 0; padding-left: 1.15em; }
+    .band li + li { margin-top: 0.45em; }
+
+    /* ---------- Split slides ---------- */
+    .split {
+      padding: 0;
+      display: grid;
+      grid-template-columns: 7fr 3fr;
+    }
+
+    .split-copy {
+      padding: 40pt 48pt;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .split-copy h1 { font-size: clamp(1.8rem, 3.2vw, 40pt); }
+
+    .bands-stack { margin-top: 8pt; }
+
+    .bands-stack .band { padding: 24pt; font-size: 1.2rem; }
+
+    .takeaways { gap: 10pt; margin-top: 8pt; }
+
+    .take {
+      display: grid;
+      grid-template-columns: 56pt 1fr;
+      gap: 22pt;
+      align-items: center;
+      padding: 12pt 20pt;
+    }
+
+    .take b {
+      width: 56pt;
+      height: 56pt;
+      display: grid;
+      place-items: center;
+      background: var(--mint);
+      color: var(--ink);
+      font-family: var(--heading-font);
+      font-weight: 800;
+      font-size: 30pt;
+      letter-spacing: -0.03em;
+    }
+
+    .take p { font-size: 24pt; line-height: 1.15; font-family: var(--heading-font); font-weight: 800; letter-spacing: -0.01em; }
+
+    .ask {
+      margin-top: 22pt;
+      font-family: var(--heading-font);
+      font-weight: 800;
+      font-size: clamp(2rem, 4vw, 48pt);
+      letter-spacing: -0.03em;
+      color: var(--mint);
+    }
+
+    /* ---------- Threat columns ---------- */
+    .thr-wrap { display: flex; gap: 16px; align-items: flex-start; width: 100%; margin-top: 8pt; }
+    .thr-col { flex: 1 1 0; min-width: 0; outline: none; position: relative; }
+    .thr-head {
+      background: #8FE3C0;
+      color: #10143A;
+      font-weight: 700;
+      font-size: 1.05em;
+      padding: 12px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .thr-head:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    .thr-head:after {
+      content: "";
+      float: right;
+      width: 7px;
+      height: 7px;
+      margin-top: 5px;
+      border-right: 2px solid #10143A;
+      border-bottom: 2px solid #10143A;
+      transform: rotate(45deg);
+      transition: transform .5s ease;
+    }
+    .thr-col.open .thr-head:after { transform: rotate(225deg); margin-top: 9px; }
+    .thr-body {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      display: block;
+      opacity: 0;
+      visibility: hidden;
+      transform: scaleY(0);
+      transform-origin: top;
+      transition: transform .5s ease, opacity .5s ease, visibility .5s ease;
+      z-index: 2;
+      background: #10143A;
+    }
+    .thr-col.open .thr-body { opacity: 1; visibility: visible; transform: scaleY(1); }
+    .thr-cell {
+      padding: 8px 10px;
+      margin-top: 6px;
+      border-bottom: 1px solid #546080;
+      font-size: .9em;
+      line-height: 1.25;
+      color: #fff;
+    }
+
+    /* ---------- Reveal table ---------- */
+    .rv-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: .95em; margin-top: 12pt; }
+    .rv-table th { background: #8FE3C0; color: #10143A; text-align: left; padding: 11px 10px; font-weight: 700; }
+    .rv-table td { border-bottom: 1px solid #546080; padding: 0; vertical-align: middle; height: 3.3em; }
+    .rv-cell {
+      display: block;
+      box-sizing: border-box;
+      width: 100%;
+      height: 100%;
+      padding: 8px 10px;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      font: inherit;
+      opacity: 0;
+      transform: translateX(-14px);
+      transition: opacity .5s ease, transform .5s ease;
+      visibility: hidden;
+      cursor: default;
+    }
+    .rv-cell.on { opacity: 1; transform: none; visibility: visible; }
+    .rv-cell.next {
+      opacity: 1;
+      visibility: visible;
+      transform: none;
+      padding-right: 26px;
+      cursor: pointer;
+      position: relative;
+    }
+    .rv-cell.next::before {
+      content: "";
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      margin-top: -6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #8FE3C0;
+    }
+    .rv-cell.next:focus-visible { outline: 2px solid #8FE3C0; outline-offset: -2px; }
+    .rv-table button:disabled { cursor: default; }
+
+    /* ---------- Seven controls ---------- */
+    .ctrl-wrap { display: flex; gap: 1.2em; height: 21em; color: #fff; margin-top: 12pt; }
+    .topic-rail { width: 15em; display: flex; flex-direction: column; position: relative; }
+    .big {
+      position: absolute;
+      right: .12em;
+      bottom: -.18em;
+      font-size: 13em;
+      line-height: 1;
+      font-weight: 800;
+      font-family: var(--heading-font);
+      color: #8FE3C0;
+      opacity: .22;
+      pointer-events: none;
+    }
+    .topic-list { position: relative; display: flex; flex-direction: column; gap: .35em; margin-top: .2em; }
+    .topic-button {
+      display: flex;
+      align-items: center;
+      gap: .6em;
+      background: rgba(255,255,255,.06);
+      border: 1px solid #546080;
+      color: #fff;
+      border-radius: .5em;
+      padding: .4em .6em;
+      font: inherit;
+      font-size: .85em;
+      text-align: left;
+      cursor: pointer;
+      transition: all .35s;
+    }
+    .topic-number {
+      display: inline-flex;
+      width: 1.6em;
+      height: 1.6em;
+      border-radius: 50%;
+      align-items: center;
+      justify-content: center;
+      background: #546080;
+      flex: none;
+    }
+    .topic-button.on {
+      background: #8FE3C0;
+      color: #10143A;
+      border-color: #8FE3C0;
+      font-weight: 700;
+      transform: translateX(.4em);
+    }
+    .topic-button.on .topic-number { background: #10143A; color: #8FE3C0; }
+    .topic-button:focus-visible, .nav-button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    .topic-stage { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .topic-panel {
+      flex: 1;
+      position: relative;
+      border: 1px solid #8FE3C0;
+      border-radius: 1em;
+      background: linear-gradient(135deg, #1b2160, #10143A);
+      padding: 1.4em 1.6em;
+    }
+    .topic-detail {
+      opacity: 0;
+      transform: translateY(.8em);
+      transition: opacity .45s, transform .45s;
+      position: absolute;
+      inset: 1.4em 1.6em;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: .7em;
+      pointer-events: none;
+    }
+    .topic-detail.on { opacity: 1; transform: none; pointer-events: auto; }
+    .topic-label {
+      font-size: .75em;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #8FE3C0;
+      font-weight: 700;
+    }
+    .topic-control { font-size: 1.5em; font-weight: 700; line-height: 1.2; margin: 0; font-family: var(--heading-font); }
+    .topic-address { font-size: 1.15em; color: #8FE3C0; font-weight: 600; margin: 0; }
+    .topic-why { font-size: 1.1em; line-height: 1.35; margin: 0; }
+    .topic-nav { display: flex; align-items: center; justify-content: space-between; margin-top: .6em; }
+    .nav-button {
+      background: #8FE3C0;
+      color: #10143A;
+      border: 0;
+      border-radius: 2em;
+      padding: .45em 1.2em;
+      font: inherit;
+      font-size: .9em;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .topic-count { font-size: .85em; color: #8FE3C0; }
+
+    /* ---------- Flip cards ---------- */
+    .layer-wrap { display: flex; gap: 1em; height: 17em; color: #fff; margin: 14pt 0 18pt; }
+    .layer { flex: 1; perspective: 60em; min-width: 0; }
+    .flip {
+      all: unset;
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform .6s;
+    }
+    .flip:focus-visible { outline: 2px solid #fff; outline-offset: 3px; border-radius: 1em; }
+    .layer.on .flip { transform: rotateY(180deg); }
+    .face, .back {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border: 1px solid #8FE3C0;
+      border-radius: 1em;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(135deg, #1b2160, #10143A);
+    }
+    .face { align-items: center; justify-content: space-between; padding: .9em .6em; }
+    .face svg { width: 78%; flex: 1; }
+    .face-title { font-size: 1.35em; font-weight: 800; color: #8FE3C0; font-family: var(--heading-font); }
+    .back { transform: rotateY(180deg); padding: 1em; justify-content: center; gap: .4em; }
+    .kicker { font-size: .7em; letter-spacing: .12em; text-transform: uppercase; color: #8FE3C0; font-weight: 700; }
+    .back p { margin: 0; font-size: .95em; line-height: 1.3; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .step, .thr-head:after, .thr-body, .rv-cell, .topic-button, .topic-detail, .flip {
+        transition: none;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .split, .bands-3 { grid-template-columns: 1fr; }
+      .card { padding: 28pt 22pt; }
+      .title, #slide-2 { padding: 8.5vh 4vw 6vh; }
+      .title { padding: 0; }
+      #slide-2 h1 { margin-bottom: 3vh; font-size: clamp(1.7rem, 4vw, 2.4rem); }
+      .chev { height: 3.2rem; font-size: 1.35rem; margin-left: -0.7rem; margin-right: -0.7rem; }
+      .step { padding: 0 0.7rem 0.7rem; }
+      .split-copy { padding: 28pt 22pt; }
+      .bleed { max-height: 42vh; }
+      .ctrl-wrap, .layer-wrap { flex-direction: column; height: auto; }
+      .topic-rail { width: 100%; }
+      .topic-panel { min-height: 16em; }
+      .layer { height: 14em; }
+      .take p, .step p { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <section class="card title" id="slide-1">
+    <div class="title-copy">
+      <div class="title-stack">
+        <h1>From Phishing to Data Leak: Securing University Online Registration</h1>
+        <p class="course">Cybersecurity Incident Response Consultancy<br>| CMN03B1 Activity 1</p>
+        <p class="members">Group members: [names]</p>
+      </div>
+    </div>
+    <div class="title-media">
+      <img src="images/title.jpg" alt="Glowing teal padlock over an email envelope, with a fishing hook, circuit lines, and a university building">
+    </div>
+  </section>
+
+  <section class="card" id="slide-2">
+    <h1>Five incidents, one attack story</h1>
+    <div class="steps">
+      <article class="step row">
+        <span class="chev" aria-hidden="true">1</span>
+        <img src="images/incident-1.jpg" alt="Fake login page on a laptop with a fishhook over the password field">
+        <p>Staff member enters credentials on phishing page → Initial access</p>
+      </article>
+      <article class="step row-alt">
+        <span class="chev" aria-hidden="true">2</span>
+        <img src="images/incident-2.jpg" alt="Network traffic graph with a sudden spike and glowing nodes">
+        <p>Unusual network traffic detected → Attacker activity / foothold</p>
+      </article>
+      <article class="step row">
+        <span class="chev" aria-hidden="true">3</span>
+        <img src="images/incident-3.jpg" alt="Browser window redirecting to a suspicious website with a warning triangle">
+        <p>Users redirected to unexpected website → Traffic hijack</p>
+      </article>
+      <article class="step row-alt">
+        <span class="chev" aria-hidden="true">4</span>
+        <img src="images/incident-4.jpg" alt="Laptop with a warning badge connecting to a network switch">
+        <p>Non-compliant laptop joins network → Weak endpoint control</p>
+      </article>
+      <article class="step row">
+        <span class="chev" aria-hidden="true">5</span>
+        <img src="images/incident-5.jpg" alt="Email envelope carrying a confidential document out of a laptop">
+        <p>Confidential research emailed out → Data exfiltration</p>
+      </article>
+    </div>
+    <p class="note">Assumption: incidents may be linked. Whether or not they are, each exposes a different control gap.</p>
+  </section>
+
+  <section class="card" id="slide-3">
+    <h1>Threats and the concepts behind them</h1>
+    <div class="thr-wrap">
+      <div class="thr-col">
+        <div class="thr-head">Threat</div>
+        <div class="thr-body"><div class="thr-inner">
+          <div class="thr-cell">Phishing / credential harvesting (social engineering)</div>
+          <div class="thr-cell">Malware / compromised account activity</div>
+          <div class="thr-cell">DNS poisoning / URL or domain hijacking</div>
+          <div class="thr-cell">Non-compliant device on network</div>
+          <div class="thr-cell">Data exfiltration / insider threat</div>
+        </div></div>
+      </div>
+      <div class="thr-col">
+        <div class="thr-head">Evidence in scenario</div>
+        <div class="thr-body"><div class="thr-inner">
+          <div class="thr-cell">Staff entered credentials on fake page</div>
+          <div class="thr-cell">Unusual traffic; likely C&amp;C beaconing or lateral movement</div>
+          <div class="thr-cell">Users sent to unexpected site</div>
+          <div class="thr-cell">Unpatched laptop connected</div>
+          <div class="thr-cell">Research documents leave by email</div>
+        </div></div>
+      </div>
+      <div class="thr-col">
+        <div class="thr-head">Course concept (LU)</div>
+        <div class="thr-body"><div class="thr-inner">
+          <div class="thr-cell">Phishing, spear phishing, impersonation (LU2); 97% of attacks start with phishing</div>
+          <div class="thr-cell">Trojan, botnet, C&amp;C over HTTP (LU2); MITM, ARP poisoning (LU4)</div>
+          <div class="thr-cell">DNS poisoning, typosquatting, domain hijacking (LU4)</div>
+          <div class="thr-cell">Vulnerability, malware spread, BYOD risk (LU1, LU2)</div>
+          <div class="thr-cell">Data theft, confidentiality, insider threat (LU1)</div>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="slide-4">
+    <h1>What is exposed, why, and what it costs</h1>
+    <p>Impact lens = Confidentiality, Integrity, Availability (CIA)</p>
+    <table class="rv-table">
+      <thead>
+        <tr>
+          <th style="width:18%">Threat</th>
+          <th style="width:25%">Asset</th>
+          <th style="width:26%">Vulnerability</th>
+          <th style="width:31%">Consequence</th>
+        </tr>
+      </thead>
+      <tbody id="rb"></tbody>
+    </table>
+  </section>
+
+  <section class="card" id="slide-5">
+    <h1>Seven controls, each chosen for a reason</h1>
+    <main class="ctrl-wrap" id="controls">
+      <nav class="topic-rail">
+        <div class="topic-list" id="ctrl-list" aria-label="Choose a control"></div>
+      </nav>
+      <article class="topic-stage">
+        <div class="topic-panel" id="ctrl-panel"><span class="big" aria-hidden="true">7</span></div>
+        <div class="topic-nav">
+          <button class="nav-button" id="ctrl-prev" type="button">← Previous</button>
+          <output class="topic-count" id="ctrl-count" aria-live="polite"></output>
+          <button class="nav-button" id="ctrl-next" type="button">Next →</button>
+        </div>
+      </article>
+    </main>
+  </section>
+
+  <section class="card" id="slide-6">
+    <h1>Security architecture (labelled)</h1>
+    <div class="diagram-frame">
+      <div class="diagram-slot">
+        <img src="images/architecture.png" alt="Security architecture: Internet through the edge firewall and DMZ into internal VLANs, the access layer, DLP controls, and the SIEM.">
+      </div>
+      <div class="zoom-bar">
+        <button type="button" id="zoom-out" aria-label="Zoom out">−</button>
+        <output id="zoom-level" aria-live="polite">100%</output>
+        <button type="button" id="zoom-in" aria-label="Zoom in">+</button>
+        <button type="button" id="zoom-fit">Fit</button>
+      </div>
+    </div>
+    <p class="note">Scroll to move. Use + and −, or Ctrl and the scroll wheel, to zoom. Legend numbers match Slide 5 controls (1 Mail gateway, 3 NAC, 4 DLP, 5 NIPS and SIEM, 6 Secure DNS, 7 VLAN/DMZ/firewall).</p>
+  </section>
+
+  <section class="card" id="slide-7">
+    <h1>How the controls work together</h1>
+    <main class="layer-wrap" id="layers"></main>
+    <p>Defence in depth (layering + diversity): no single failure exposes research data.</p>
+  </section>
+
+  <section class="card" id="slide-8">
+    <h1>Prioritised action plan</h1>
+    <div class="bands-3">
+      <article class="band mint">
+        <h3>Immediate (0-72 hours): Contain</h3>
+        <ul>
+          <li>Reset phished credentials, revoke sessions, enforce MFA on admin/registration</li>
+          <li>Quarantine the laptop; block the outbound leak path; preserve logs</li>
+          <li>Check DNS records and flush caches</li>
+        </ul>
+      </article>
+      <article class="band row-alt">
+        <h3>Short-term (1-3 months): Prevent and detect</h3>
+        <ul>
+          <li>Deploy mail gateway, NAC, DNS hardening</li>
+          <li>Deploy IPS/IDS and SIEM with tuned alerts</li>
+          <li>Run phishing awareness training</li>
+        </ul>
+      </article>
+      <article class="band row">
+        <h3>Longer-term (3-12 months): Mature</h3>
+        <ul>
+          <li>Re-segment network, with a dedicated research VLAN</li>
+          <li>Full DLP rollout after data classification</li>
+          <li>Incident response plan, tabletop exercises, align to NIST CSF / ISO 27001</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section class="card split" id="slide-9">
+    <div class="split-copy">
+      <h1>Why this order, and what it costs us</h1>
+      <div class="bands-stack">
+        <article class="band row-alt"><strong>Contain before prevent, prevent before mature:</strong> an active incident must be stopped first, then the entry points closed, then structure improved.</article>
+        <article class="band mint"><strong>Low cost, high impact first:</strong> MFA and quarantine are cheap and cut the most risk quickly.</article>
+        <article class="band row"><strong>Dependencies:</strong> SIEM needs log sources deployed first; DLP needs classified data first.</article>
+        <article class="band row-alt"><strong>Trade-off:</strong> NAC and MFA add friction at registration peaks. Managed by phased rollout, off-peak enforcement, a helpdesk surge team and clear user communication.</article>
+      </div>
+    </div>
+    <img class="bleed" src="images/why.jpg" alt="Teal shield and padlock over a network of connected nodes and an email envelope">
+  </section>
+
+  <section class="card split" id="slide-10">
+    <div class="split-copy">
+      <h1>Key takeaways</h1>
+      <div class="bands-stack takeaways">
+        <article class="take row-alt">
+          <b>01</b>
+          <p>One phished password can start a chain of incidents; people are the first target.</p>
+        </article>
+        <article class="take row">
+          <b>02</b>
+          <p>No single control is enough; layered, diverse controls contain failure.</p>
+        </article>
+        <article class="take row-alt">
+          <b>03</b>
+          <p>Act in order: contain now, prevent next, mature over time.</p>
+        </article>
+      </div>
+      <p class="ask">Questions?</p>
+    </div>
+    <img class="bleed" src="images/takeaways.jpg" alt="Teal shield with a padlock over layered network lines and a small email envelope">
+  </section>
+
+  <section class="card" id="slide-refs">
+    <h1>References</h1>
+    <ol class="refs">
+      <li>Ciampa, M. (2018) <em>CompTIA Security+ guide to network security fundamentals</em>. 6th edn. Boston: Cengage Learning.</li>
+      <li>Cybersecurity and Infrastructure Security Agency, National Security Agency, Federal Bureau of Investigation and Multi-State Information Sharing and Analysis Center (2023) <em>Phishing guidance: stopping the attack cycle at phase one</em>. Available at: <a href="https://www.cisa.gov/resources-tools/resources/phishing-guidance-stopping-attack-cycle-phase-one">https://www.cisa.gov/resources-tools/resources/phishing-guidance-stopping-attack-cycle-phase-one</a> (Accessed: 8 October 2026).</li>
+      <li>Information Regulator (South Africa) (2025) <em>Fact sheet: handling of security compromises</em>. Available at: <a href="https://inforegulator.org.za/2025/08/19/fact-sheet-handling-of-security-compromises/">https://inforegulator.org.za/2025/08/19/fact-sheet-handling-of-security-compromises/</a> (Accessed: 8 October 2026).</li>
+      <li>National Institute of Standards and Technology (2025) <em>Incident response recommendations and considerations for cybersecurity risk management: a CSF 2.0 community profile</em>. NIST SP 800-61 Rev. 3. Gaithersburg, MD: National Institute of Standards and Technology. Available at: <a href="https://doi.org/10.6028/NIST.SP.800-61r3">https://doi.org/10.6028/NIST.SP.800-61r3</a> (Accessed: 8 October 2026).</li>
+      <li>Pascoe, C., Quinn, S. and Scarfone, K. (2024) <em>The NIST Cybersecurity Framework (CSF) 2.0</em>. NIST CSWP 29. Gaithersburg, MD: National Institute of Standards and Technology. Available at: <a href="https://doi.org/10.6028/NIST.CSWP.29">https://doi.org/10.6028/NIST.CSWP.29</a> (Accessed: 8 October 2026).</li>
+      <li>Republic of South Africa (2013) <em>Protection of Personal Information Act 4 of 2013</em>. Government Gazette No. 37067, 26 November. Pretoria: Government Printer. Available at: <a href="https://www.gov.za/documents/protection-personal-information-act">https://www.gov.za/documents/protection-personal-information-act</a> (Accessed: 8 October 2026).</li>
+      <li>Scarfone, K. and Mell, P. (2007) <em>Guide to intrusion detection and prevention systems (IDPS)</em>. NIST SP 800-94. Gaithersburg, MD: National Institute of Standards and Technology. Available at: <a href="https://doi.org/10.6028/NIST.SP.800-94">https://doi.org/10.6028/NIST.SP.800-94</a> (Accessed: 8 October 2026).</li>
+      <li>Verizon (2025) <em>2025 data breach investigations report</em>. Available at: <a href="https://www.verizon.com/business/resources/reports/2025-dbir-data-breach-investigations-report.pdf">https://www.verizon.com/business/resources/reports/2025-dbir-data-breach-investigations-report.pdf</a> (Accessed: 8 October 2026). In the breaches analysed, use of stolen credentials was present in 22% and phishing in about 15%.</li>
+    </ol>
+  </section>
+
+  <script>
+    document.querySelectorAll(".thr-col").forEach(function (c) {
+      var h = c.querySelector(".thr-head");
+      h.setAttribute("role", "button");
+      h.setAttribute("tabindex", "0");
+      h.setAttribute("aria-expanded", "false");
+      function toggle() {
+        var open = c.classList.toggle("open");
+        h.setAttribute("aria-expanded", String(open));
+      }
+      h.addEventListener("click", toggle);
+      h.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggle();
+        }
+      });
+    });
+
+    (function () {
+      var D = [
+        ["Phishing", "Staff credentials, registration system", "No MFA, weak email filtering, low awareness", "Account takeover, fraudulent registrations"],
+        ["Suspicious traffic", "Network, servers, student records", "Flat network, limited monitoring", "Undetected lateral movement, downtime in registration"],
+        ["Redirection", "Student logins, portal reputation", "Unprotected DNS, no web filtering", "Credential theft, loss of trust"],
+        ["Non-compliant laptop", "Internal network, all connected devices", "No posture check before access", "Malware spreads to other systems"],
+        ["Email leak", "Research IP, personal information", "No content inspection, no data classification", "IP loss, POPIA non-compliance, fines, reputational damage"]
+      ];
+      var body = document.getElementById("rb");
+      D.forEach(function (row, rowIndex) {
+        var tr = document.createElement("tr");
+        var cells = [];
+        var n = 1;
+        row.forEach(function (text, i) {
+          var td = document.createElement("td");
+          var button = document.createElement("button");
+          button.type = "button";
+          button.className = "rv-cell";
+          button.textContent = text;
+          button.id = "r" + rowIndex + "c" + i;
+          button.addEventListener("click", function () {
+            if (i === n - 1 && n < row.length) {
+              n++;
+              update();
+              var next = cells[n - 1];
+              if (next && !next.disabled) next.focus();
+            }
+          });
+          cells.push(button);
+          td.appendChild(button);
+          tr.appendChild(td);
+        });
+        function update() {
+          cells.forEach(function (cell, i) {
+            var next = i === n - 1 && n < row.length;
+            cell.className = "rv-cell" + (n > i ? " on" : "") + (next ? " next" : "");
+            cell.disabled = !next;
+            cell.setAttribute("aria-expanded", String(n > i + 1));
+            if (i < row.length - 1) cell.setAttribute("aria-controls", "r" + rowIndex + "c" + (i + 1));
+            else cell.removeAttribute("aria-controls");
+            if (next) cell.setAttribute("aria-label", "Reveal next cell in row " + row[0]);
+            else cell.removeAttribute("aria-label");
+          });
+        }
+        body.appendChild(tr);
+        update();
+      });
+    })();
+
+    (function () {
+      var D = [
+        ["1. Mail gateway (anti-phishing, attachment scanning, outbound checks)", "Phishing, leaks", "Stops the attack at the entry point; users cannot be the only filter", "Mail gateway"],
+        ["2. MFA + phishing awareness training", "Stolen credentials", "Makes a stolen password useless; training alone fails on convincing fakes", "MFA + training"],
+        ["3. Network Access Control (NAC)", "Non-compliant laptop", "Checks health before access and quarantines; a firewall alone cannot judge device state", "Network Access Control"],
+        ["4. Data Loss Prevention (DLP)", "Research leaving by email", "Inspects content, sender, destination; encryption alone does not stop an authorised user sending data out", "Data Loss Prevention"],
+        ["5. NIPS/IDS + SIEM", "Unusual traffic", "IPS blocks known attacks; SIEM correlates logs so isolated alerts become one incident", "NIPS/IDS + SIEM"],
+        ["6. Secure DNS (DNSSEC, trusted resolvers) + web security gateway", "Redirection", "Fixes the cause of the redirect and blocks malicious sites in real time", "Secure DNS + web gateway"],
+        ["7. VLAN segmentation + DMZ + firewall ACLs", "Spread of compromise", "Limits blast radius; research and registration cannot be reached from any compromised laptop", "Segmentation + DMZ"]
+      ];
+      var cur = 0;
+      var list = document.getElementById("ctrl-list");
+      var panel = document.getElementById("ctrl-panel");
+      var buttons = [];
+      var details = [];
+      D.forEach(function (d, i) {
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "topic-button";
+        button.innerHTML = '<b class="topic-number">' + (i + 1) + "</b><span>" + d[3] + "</span>";
+        button.onclick = function () { go(i); };
+        list.appendChild(button);
+        buttons.push(button);
+        var detail = document.createElement("article");
+        detail.className = "topic-detail";
+        detail.innerHTML = '<span class="topic-label">Control</span><h2 class="topic-control">' + d[0] + '</h2><span class="topic-label">Addresses</span><p class="topic-address">' + d[1] + '</p><span class="topic-label">Why this one (and not the alternative)</span><p class="topic-why">' + d[2] + "</p>";
+        panel.appendChild(detail);
+        details.push(detail);
+      });
+      function go(i) {
+        cur = (i + 7) % 7;
+        buttons.forEach(function (button, j) {
+          button.className = "topic-button" + (j === cur ? " on" : "");
+          button.setAttribute("aria-pressed", j === cur ? "true" : "false");
+        });
+        details.forEach(function (detail, j) {
+          detail.className = "topic-detail" + (j === cur ? " on" : "");
+        });
+        document.getElementById("ctrl-count").textContent = (cur + 1) + " / 7";
+      }
+      document.getElementById("ctrl-prev").onclick = function () { go(cur - 1); };
+      document.getElementById("ctrl-next").onclick = function () { go(cur + 1); };
+      document.getElementById("controls").addEventListener("keydown", function (e) {
+        if (e.key === "ArrowRight") { go(cur + 1); e.preventDefault(); }
+        if (e.key === "ArrowLeft") { go(cur - 1); e.preventDefault(); }
+      });
+      go(0);
+    })();
+
+    (function () {
+      var slot = document.querySelector("#slide-6 .diagram-slot");
+      var img = slot && slot.querySelector("img");
+      var level = document.getElementById("zoom-level");
+      if (!slot || !img || !level) return;
+      var base = 4600;
+      var scale = 1;
+      var minScale = 0.08;
+      var maxScale = 3;
+
+      function fitScale() {
+        var ratio = img.naturalHeight && img.naturalWidth ? img.naturalHeight / img.naturalWidth : 3225 / 3541;
+        var byWidth = slot.clientWidth / base;
+        var byHeight = slot.clientHeight / (base * ratio);
+        return Math.max(minScale, Math.min(byWidth, byHeight));
+      }
+
+      function apply(next, originX, originY) {
+        var prevW = img.offsetWidth || base;
+        var prevH = img.offsetHeight || base;
+        scale = Math.min(maxScale, Math.max(minScale, next));
+        var ox = originX == null ? slot.clientWidth / 2 : originX;
+        var oy = originY == null ? slot.clientHeight / 2 : originY;
+        var relX = (slot.scrollLeft + ox) / prevW;
+        var relY = (slot.scrollTop + oy) / prevH;
+        img.style.width = Math.round(base * scale) + "px";
+        slot.scrollLeft = relX * img.offsetWidth - ox;
+        slot.scrollTop = relY * img.offsetHeight - oy;
+        level.textContent = Math.round(scale * 100) + "%";
+      }
+
+      function place() {
+        slot.scrollLeft = Math.max(0, (img.offsetWidth - slot.clientWidth) / 2);
+        slot.scrollTop = 0;
+        level.textContent = Math.round(scale * 100) + "%";
+      }
+
+      document.getElementById("zoom-in").onclick = function () { apply(scale * 1.25); };
+      document.getElementById("zoom-out").onclick = function () { apply(scale / 1.25); };
+      document.getElementById("zoom-fit").onclick = function () {
+        apply(fitScale());
+        slot.scrollLeft = Math.max(0, (img.offsetWidth - slot.clientWidth) / 2);
+        slot.scrollTop = Math.max(0, (img.offsetHeight - slot.clientHeight) / 2);
+      };
+
+      slot.addEventListener("wheel", function (e) {
+        if (!e.ctrlKey && !e.metaKey) return;
+        e.preventDefault();
+        var rect = slot.getBoundingClientRect();
+        var factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+        apply(scale * factor, e.clientX - rect.left, e.clientY - rect.top);
+      }, { passive: false });
+
+      if (img.complete) place();
+      else img.addEventListener("load", place);
+    })();
+
+    (function () {
+      var stroke = 'fill="none" stroke="#8FE3C0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"';
+      var icons = [
+        '<svg viewBox="0 0 100 100" ' + stroke + '><path d="M50 8 L84 20 V50 C84 72 68 86 50 94 C32 86 16 72 16 50 V20 Z"/><path d="M34 50 L46 62 L68 38"/></svg>',
+        '<svg viewBox="0 0 100 100" ' + stroke + '><circle cx="50" cy="50" r="40"/><circle cx="50" cy="50" r="24"/><circle cx="50" cy="50" r="7" fill="#8FE3C0"/><path d="M50 50 L78 22"/></svg>',
+        '<svg viewBox="0 0 100 100" ' + stroke + '><rect x="26" y="26" width="48" height="36" rx="4"/><path d="M40 74H60M50 62V74"/><rect x="8" y="8" width="84" height="84" rx="10" stroke-dasharray="8 8"/></svg>',
+        '<svg viewBox="0 0 100 100" ' + stroke + '><path d="M24 8H62L78 24V92H24Z"/><rect x="38" y="52" width="26" height="22" rx="3"/><path d="M43 52V44a8 8 0 0 1 16 0V52"/></svg>'
+      ];
+      var data = [
+        ["Prevent", "Mail gateway, MFA, firewall/ACLs, secure DNS", "Block phishing, stolen logins and bad redirects"],
+        ["Detect", "NIPS/IDS, SIEM, DLP alerts", "See abnormal traffic and data movement"],
+        ["Contain", "NAC quarantine VLAN, segmentation", "Isolate bad devices and stop lateral movement"],
+        ["Protect data", "DLP, encryption (TLS for email, AES at rest), least privilege", "Keep research confidential even if a layer fails"]
+      ];
+      var root = document.getElementById("layers");
+      data.forEach(function (item, i) {
+        var card = document.createElement("div");
+        card.className = "layer";
+        card.innerHTML = '<button class="flip" type="button" aria-expanded="false" aria-label="' + item[0] + '"><span class="face">' + icons[i] + '<span class="face-title">' + item[0] + '</span></span><span class="back"><span class="kicker">Controls</span><p>' + item[1] + '</p><span class="kicker">Role</span><p>' + item[2] + "</p></span></button>";
+        var button = card.firstChild;
+        button.onclick = function () {
+          var open = card.classList.toggle("on");
+          button.setAttribute("aria-expanded", String(open));
+        };
+        root.appendChild(card);
+      });
+    })();
+  </script>
+</body>
+</html>
